@@ -38,7 +38,7 @@ void main() {
       await cubit.addContact(
         professionId: 2,
         professionName: 'نجار',
-        localPart: '45365521',
+        localNumber: '0545365521',
       );
 
       expect(repository.addCalls, 1);
@@ -64,7 +64,7 @@ void main() {
     await cubit.addContact(
       professionId: 2,
       professionName: 'نجار',
-      localPart: '45365521',
+      localNumber: '0545365521',
     );
 
     expect(repository.addCalls, 0);

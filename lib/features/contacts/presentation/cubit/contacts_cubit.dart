@@ -41,13 +41,13 @@ class ContactsCubit extends Cubit<ContactsState> {
   Future<void> addContact({
     required int professionId,
     required String professionName,
-    required String localPart,
+    required String localNumber,
   }) async {
     if (state is ContactsAdding) return;
-    if (!PhoneValidator.isValidLocalPart(localPart)) {
+    if (!PhoneValidator.isValidLocalNumber(localNumber)) {
       emit(
         ContactAddFailure(
-          message: 'يجب أن يتكون الرقم من 8 أرقام إنجليزية.',
+          message: 'يجب أن يتكون الرقم من 10 أرقام إنجليزية ويبدأ بـ 05.',
           contacts: state.contacts,
           searchQuery: state.searchQuery,
         ),
@@ -55,7 +55,7 @@ class ContactsCubit extends Cubit<ContactsState> {
       return;
     }
 
-    final phone = PhoneValidator.buildFullPhone(localPart);
+    final phone = PhoneValidator.buildFullPhone(localNumber);
     if (contactExistsInProfession(
       contacts: state.contacts,
       professionName: professionName,

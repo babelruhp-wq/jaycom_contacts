@@ -4,18 +4,20 @@ import 'package:jaycom_contacts/features/contacts/domain/utils/phone_validator.d
 void main() {
   group('PhoneValidator', () {
     test(
-      'accepts exactly eight English digits and preserves a leading zero',
+      'accepts a ten-digit local mobile and converts it to international form',
       () {
-        expect(PhoneValidator.isValidLocalPart('05365521'), isTrue);
-        expect(PhoneValidator.buildFullPhone('05365521'), '+966505365521');
+        expect(PhoneValidator.isValidLocalNumber('0545365521'), isTrue);
+        expect(PhoneValidator.buildFullPhone('0545365521'), '+966545365521');
       },
     );
 
     test('rejects invalid input', () {
-      expect(PhoneValidator.isValidLocalPart('4536552'), isFalse);
-      expect(PhoneValidator.isValidLocalPart('453655211'), isFalse);
-      expect(PhoneValidator.isValidLocalPart('٤٥٣٦٥٥٢١'), isFalse);
-      expect(PhoneValidator.isValidLocalPart('4536-521'), isFalse);
+      expect(PhoneValidator.isValidLocalNumber('054536552'), isFalse);
+      expect(PhoneValidator.isValidLocalNumber('05453655211'), isFalse);
+      expect(PhoneValidator.isValidLocalNumber('5545365521'), isFalse);
+      expect(PhoneValidator.isValidLocalNumber('0645365521'), isFalse);
+      expect(PhoneValidator.isValidLocalNumber('٠٥٤٥٣٦٥٥٢١'), isFalse);
+      expect(PhoneValidator.isValidLocalNumber('054-365521'), isFalse);
     });
   });
 }
