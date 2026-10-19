@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:jaycom_contacts/core/constants/app_constants.dart';
 import 'package:jaycom_contacts/core/theme/app_colors.dart';
+import 'package:jaycom_contacts/core/utils/file_downloader.dart';
 import 'package:jaycom_contacts/core/widgets/brand_logo.dart';
 import 'package:jaycom_contacts/core/widgets/feedback_view.dart';
 import 'package:jaycom_contacts/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:jaycom_contacts/features/contacts/domain/entities/contact.dart';
 import 'package:jaycom_contacts/features/contacts/domain/utils/contact_matcher.dart';
+import 'package:jaycom_contacts/features/contacts/domain/utils/contacts_csv_exporter.dart';
 import 'package:jaycom_contacts/features/contacts/presentation/cubit/contacts_cubit.dart';
 import 'package:jaycom_contacts/features/contacts/presentation/cubit/contacts_state.dart';
 import 'package:jaycom_contacts/features/contacts/presentation/widgets/add_contact_dialog.dart';
@@ -372,6 +374,7 @@ class _ContactsWorkspace extends StatelessWidget {
                     profession: selected,
                     count: allForProfession.length,
                     refreshing: contactState is ContactsLoading,
+                    contacts: contactState.contacts,
                   ),
                   const SizedBox(height: 22),
                   _SearchBar(query: contactState.searchQuery),
@@ -428,11 +431,13 @@ class _WorkspaceHeader extends StatelessWidget {
     required this.profession,
     required this.count,
     required this.refreshing,
+    required this.contacts,
   });
 
   final Profession profession;
   final int count;
   final bool refreshing;
+  final List<Contact> contacts;
 
   @override
   Widget build(BuildContext context) {
@@ -471,6 +476,7 @@ class _WorkspaceHeader extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
+                _ExportMenu(profession: profession, contacts: contacts),
                 OutlinedButton.icon(
                   onPressed: refreshing
                       ? null
@@ -491,6 +497,50 @@ class _WorkspaceHeader extends StatelessWidget {
               ],
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+class _ExportMenu extends StatelessWidget {
+  const _ExportMenu({required this.profession, required this.contacts});
+
+  final Profession profession;
+  final List<Contact> contacts;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedContacts = contactsForProfession(contacts, profession.name);
+    return MenuAnchor(
+      menuChildren: [
+        MenuItemButton(
+          onPressed: selectedContacts.isEmpty
+              ? null
+              : () => _exportSelectedProfession(
+                  context,
+                  profession,
+                  selectedContacts,
+                ),
+          leadingIcon: const Icon(Icons.work_outline_rounded),
+          child: Text('تصدير مهنة «${profession.name}»'),
+        ),
+        MenuItemButton(
+          onPressed: contacts.isEmpty
+              ? null
+              : () => _exportAllProfessions(context, contacts),
+          leadingIcon: const Icon(Icons.groups_outlined),
+          child: const Text('تصدير كل المهن'),
+        ),
+      ],
+      builder: (context, controller, child) {
+        return OutlinedButton.icon(
+          onPressed: contacts.isEmpty
+              ? null
+              : () =>
+                    controller.isOpen ? controller.close() : controller.open(),
+          icon: const Icon(Icons.download_outlined),
+          label: const Text('تصدير CSV'),
         );
       },
     );
@@ -712,4 +762,57 @@ void _showAddContact(BuildContext context, Profession profession) {
       child: AddContactDialog(profession: profession),
     ),
   );
+}
+
+void _exportSelectedProfession(
+  BuildContext context,
+  Profession profession,
+  List<Contact> contacts,
+) {
+  final csv = ContactsCsvExporter.forProfession(
+    contacts: contacts,
+    professionName: profession.name,
+  );
+  final professionPart = ContactsCsvExporter.safeFilePart(profession.name);
+  _downloadCsv(
+    context,
+    csv: csv,
+    fileName: '$professionPart.csv',
+    successMessage: 'تم تصدير أرقام مهنة «${profession.name}».',
+  );
+}
+
+void _exportAllProfessions(BuildContext context, List<Contact> contacts) {
+  final csv = ContactsCsvExporter.forAllProfessions(contacts);
+  _downloadCsv(
+    context,
+    csv: csv,
+    fileName: 'كل_المهن.csv',
+    successMessage: 'تم تصدير أرقام جميع المهن.',
+  );
+}
+
+void _downloadCsv(
+  BuildContext context, {
+  required String csv,
+  required String fileName,
+  required String successMessage,
+}) {
+  try {
+    downloadTextFile(
+      content: csv,
+      fileName: fileName,
+      mimeType: 'text/csv;charset=utf-8',
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(successMessage),
+        backgroundColor: AppColors.primaryDark,
+      ),
+    );
+  } on UnsupportedError catch (error) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+  }
 }
